@@ -162,9 +162,9 @@ impl GlRenderer {
             Some(t) => t,
             None => RenderTarget::new(&self.gl, width as i32, height as i32, self.msaa)?,
         };
-        let result = target.resize(&self.gl, width as i32, height as i32).and_then(|_| {
+        let result = target.resize(&self.gl, width as i32, height as i32).map(|_| {
             self.render(scene, &target, RenderOptions::default());
-            Ok(target.color_tex)
+            target.color_tex
         });
         self.viewport = Some(target);
         result

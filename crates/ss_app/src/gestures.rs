@@ -122,18 +122,20 @@ pub fn handle(app: &mut ShapeshopApp, ui: &mut egui::Ui, response: &egui::Respon
     }
 
     // Box select: drag on empty space with the Select tool.
-    if app.tool == ActiveTool::Select && app.drag.is_none() && response.drag_started_by(egui::PointerButton::Primary) {
-        if let Some(start) = pointer.press_origin().filter(|p| rect.contains(*p)) {
-            let ray = app.camera.ray_through(vp, to_gvec(start));
-            let doc = &app.doc;
-            let on_object = ss_doc::pick_object(doc, &mut app.eval, &ray, |id| !doc.is_locked(id)).is_some();
-            if !on_object && !over_gizmo {
-                app.drag = Some(DragSession {
-                    kind: DragKind::BoxSelect { start, additive: shift },
-                    start_doc: app.doc.clone(),
-                    cancelled: false,
-                });
-            }
+    if app.tool == ActiveTool::Select
+        && app.drag.is_none()
+        && response.drag_started_by(egui::PointerButton::Primary)
+        && let Some(start) = pointer.press_origin().filter(|p| rect.contains(*p))
+    {
+        let ray = app.camera.ray_through(vp, to_gvec(start));
+        let doc = &app.doc;
+        let on_object = ss_doc::pick_object(doc, &mut app.eval, &ray, |id| !doc.is_locked(id)).is_some();
+        if !on_object && !over_gizmo {
+            app.drag = Some(DragSession {
+                kind: DragKind::BoxSelect { start, additive: shift },
+                start_doc: app.doc.clone(),
+                cancelled: false,
+            });
         }
     }
     if let Some(DragSession { kind: DragKind::BoxSelect { start, additive }, cancelled, .. }) = app.drag.as_ref() {
@@ -384,8 +386,8 @@ fn size_interaction(
         }
     }
     let Some(DragSession { kind: DragKind::Size(sd), start_doc, cancelled }) = app.drag.as_mut() else { return };
-    if !*cancelled {
-        if let Some(p) = pointer.hover_pos() {
+    if !*cancelled && let Some(p) = pointer.hover_pos() {
+        {
             let ray = app.camera.ray_through(vp, to_gvec(p));
             let t = sd.line.closest_params_to_line(&ray).map(|(t, _)| t).unwrap_or(sd.grab_t);
             let snap = start_doc.meta().snap.clone();

@@ -8,20 +8,15 @@ use serde::{Deserialize, Serialize};
 use crate::{EdgeKey, FaceId, MaterialId, PolyMesh, VertId};
 
 /// How surfaces are shaded: "Looks" in the UI.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum Shading {
     /// Every face is flat (blocky / low-poly look).
+    #[default]
     Faceted,
     /// Smooth everywhere.
     Smooth,
     /// Smooth, but edges sharper than `angle_deg` (and edges marked sharp) stay crisp.
     SmoothSharp { angle_deg: f32 },
-}
-
-impl Default for Shading {
-    fn default() -> Self {
-        Shading::Faceted
-    }
 }
 
 /// Per-vertex material inputs for the shader.

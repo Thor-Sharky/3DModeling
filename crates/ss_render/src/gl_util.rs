@@ -41,7 +41,7 @@ impl Program {
 
     pub fn loc(&mut self, gl: &glow::Context, name: &'static str) -> Option<glow::UniformLocation> {
         let raw = self.raw;
-        self.uniforms.entry(name).or_insert_with(|| unsafe { gl.get_uniform_location(raw, name) }).clone()
+        *self.uniforms.entry(name).or_insert_with(|| unsafe { gl.get_uniform_location(raw, name) })
     }
 
     pub fn destroy(&self, gl: &glow::Context) {

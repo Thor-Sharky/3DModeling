@@ -5,8 +5,6 @@ use eframe::egui::{self, Color32, CornerRadius, FontFamily, FontId, Stroke, Text
 /// Roblox Studio selection blue.
 pub const ACCENT: Color32 = Color32::from_rgb(0x00, 0xA2, 0xFF);
 pub const CUTTER_RED: Color32 = Color32::from_rgb(0xDB, 0x29, 0x1F);
-pub const OK_GREEN: Color32 = Color32::from_rgb(0x2E, 0x9E, 0x55);
-pub const WARN_AMBER: Color32 = Color32::from_rgb(0xE0, 0x9A, 0x16);
 pub const AXIS_X: Color32 = Color32::from_rgb(0xDB, 0x33, 0x2E);
 pub const AXIS_Y: Color32 = Color32::from_rgb(0x3E, 0xA8, 0x3B);
 pub const AXIS_Z: Color32 = Color32::from_rgb(0x26, 0x66, 0xE6);
