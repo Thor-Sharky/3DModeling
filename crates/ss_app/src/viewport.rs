@@ -198,7 +198,9 @@ fn zoom_at_cursor(app: &mut ShapeshopApp, vp: &Viewport, cursor: Option<Pos2>, f
 fn view_buttons(app: &mut ShapeshopApp, ui: &mut egui::Ui, rect: Rect) {
     use egui_phosphor::regular as icon;
     let size = Vec2::new(204.0, 190.0);
-    let area = Rect::from_min_size(Pos2::new(rect.max.x - size.x - 10.0, rect.min.y + 10.0), size);
+    // On narrow windows the Tool strip needs the whole top row, so drop below it.
+    let top = if rect.width() < 1060.0 { rect.min.y + 60.0 } else { rect.min.y + 10.0 };
+    let area = Rect::from_min_size(Pos2::new(rect.max.x - size.x - 10.0, top), size);
     let mut child =
         ui.new_child(egui::UiBuilder::new().max_rect(area).layout(egui::Layout::top_down(egui::Align::Min)));
     egui::Frame::popup(child.style()).inner_margin(6.0).show(&mut child, |ui| {

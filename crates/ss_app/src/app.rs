@@ -231,10 +231,9 @@ impl ShapeshopApp {
             for (kind, color, pos) in items {
                 let mat = pick(color, tx.doc()).ok_or(DocError::Invalid("no colors".into()))?;
                 let name = tx.doc().unique_name(kind.label());
-                let mut obj = Object::new(
-                    name,
-                    ObjectKind::Shape(Shape::new(ShapeSource::Primitive(kind.default_primitive()), mat)),
-                );
+                let mut shape = Shape::new(ShapeSource::Primitive(kind.default_primitive()), mat);
+                shape.look = default_look(kind);
+                let mut obj = Object::new(name, ObjectKind::Shape(shape));
                 obj.transform.translation = pos;
                 last = Some(tx.add_object(obj, None, None)?);
             }

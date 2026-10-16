@@ -96,7 +96,7 @@ pub fn show(app: &mut ShapeshopApp, ui: &mut egui::Ui) {
                     if !visible {
                         text = text.weak().italics();
                     }
-                    let r = ui.add(egui::Button::selectable(selected, text).min_size(egui::vec2(120.0, 0.0)));
+                    let r = ui.add(egui::Button::selectable(selected, text));
                     app.anchors.register(format!("scene.{name}"), r.rect);
                     if r.double_clicked() {
                         app.outliner.renaming = Some((id, name.clone()));
