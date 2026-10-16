@@ -220,13 +220,10 @@ impl Document {
             || self.ancestors(id).iter().any(|a| self.object(*a).is_some_and(|o| o.locked))
     }
 
-    /// The shape's own mesh in object space, before effects. Builds primitives on
-    /// the fly; use an [`Evaluator`](crate::Evaluator) when calling this every frame.
+    /// The shape's own mesh in object space (pivot applied, before effects). Builds
+    /// primitives on the fly; use an [`Evaluator`](crate::Evaluator) when calling this every frame.
     pub fn mesh_of(&self, id: ObjectId) -> Option<Arc<PolyMesh>> {
-        match &self.object(id)?.shape()?.source {
-            ShapeSource::Primitive(p) => Some(Arc::new(p.build())),
-            ShapeSource::Mesh(m) => Some(m.clone()),
-        }
+        Some(self.object(id)?.shape()?.base_mesh())
     }
 
     /// World-space bounds of an object and its children (shapes only).

@@ -26,7 +26,7 @@ pub use history::{History, HistoryEntry};
 pub use material::Material;
 pub use object::{
     Axis, Combine, Effects, Group, Light, LightKind, MirrorFx, Object, ObjectId, ObjectKind, PhotoCamera, RepeatFx,
-    Role, Shape, ShapeSource, SmoothFx,
+    Role, Shape, ShapeSource, SmoothFx, apply_pivot,
 };
 pub use params::{Invocation, ParamValue, ParamValues};
 pub use pick::{PickHit, pick_object};

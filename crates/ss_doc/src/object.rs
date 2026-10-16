@@ -115,11 +115,32 @@ pub struct Shape {
     pub material: MaterialId,
     pub look: Shading,
     pub effects: Effects,
+    /// The point of the source mesh (in its own coordinates) that sits at the
+    /// object's origin. Primitives are built centered, so `ZERO` = pivot at the
+    /// center; "Pivot: bottom" sets it to the bottom-center. Changing the pivot
+    /// keeps sliders: evaluation shifts the mesh by `-pivot`.
+    pub pivot: Vec3,
 }
 
 impl Shape {
     pub fn new(source: ShapeSource, material: MaterialId) -> Self {
-        Self { source, role: Role::Solid, material, look: Shading::Faceted, effects: Effects::default() }
+        Self {
+            source,
+            role: Role::Solid,
+            material,
+            look: Shading::Faceted,
+            effects: Effects::default(),
+            pivot: Vec3::ZERO,
+        }
+    }
+
+    /// The source mesh in object space (pivot applied, effects not applied).
+    pub fn base_mesh(&self) -> Arc<PolyMesh> {
+        let mesh = match &self.source {
+            ShapeSource::Primitive(p) => Arc::new(p.build()),
+            ShapeSource::Mesh(m) => m.clone(),
+        };
+        apply_pivot(mesh, self.pivot)
     }
 
     pub fn primitive(&self) -> Option<&Primitive> {
@@ -128,6 +149,16 @@ impl Shape {
             ShapeSource::Mesh(_) => None,
         }
     }
+}
+
+/// Shift a mesh so `pivot` lands on the origin (no copy when the pivot is zero).
+pub fn apply_pivot(mesh: Arc<PolyMesh>, pivot: Vec3) -> Arc<PolyMesh> {
+    if pivot == Vec3::ZERO {
+        return mesh;
+    }
+    let mut m = (*mesh).clone();
+    m.transform(&glam::Mat4::from_translation(-pivot));
+    Arc::new(m)
 }
 
 #[derive(Clone, Debug, PartialEq)]

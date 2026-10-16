@@ -23,6 +23,7 @@ enum SourceKey {
 #[derive(Clone, Debug, PartialEq)]
 struct Key {
     source: SourceKey,
+    pivot: glam::Vec3,
     effects: Effects,
 }
 
@@ -45,6 +46,7 @@ impl Evaluator {
                 ShapeSource::Primitive(p) => SourceKey::Prim(p.clone()),
                 ShapeSource::Mesh(m) => SourceKey::Mesh(m.rev()),
             },
+            pivot: shape.pivot,
             effects: shape.effects.clone(),
         };
         let slot = self.cache.entry(id).or_default();
@@ -54,10 +56,7 @@ impl Evaluator {
             slot.push(hit);
             return Some(mesh);
         }
-        let base: Arc<PolyMesh> = match &shape.source {
-            ShapeSource::Primitive(p) => Arc::new(p.build()),
-            ShapeSource::Mesh(m) => m.clone(),
-        };
+        let base: Arc<PolyMesh> = shape.base_mesh();
         // Live effects (Mirror, Repeat, Smooth) are applied here in milestone 6.
         let mesh = base;
         slot.push((key, mesh.clone()));
