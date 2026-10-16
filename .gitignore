@@ -4,3 +4,4 @@
 *.bak
 /vendor-libs
 .DS_Store
+/.claude/

@@ -1,0 +1,26 @@
+// One-sided Size handle (Roblox style) and the Turn gizmo.
+Script(steps: [
+    WaitFrames(5),
+    Click(Anchor("shapes.block")),
+    Click(Anchor("tool.size")),
+    Assert(ToolIs("Size")),
+    WaitFrames(2),
+    Screenshot(path: "size_handles.png", probes: []),
+    // Drag the +X handle (outside the +X side at x = 2) two studs further out.
+    Drag(from: World(Point(2.35, 0.5, 0.0)), to: World(Point(4.35, 0.5, 0.0)), frames: Some(15)),
+    WaitIdle,
+    Assert(ObjectSize(name: "Block 1", size: (6.0, 1.0, 2.0), tolerance: 0.01)),
+    // The -X side stayed at x = -2, so the center moved +1.
+    Assert(ObjectPosition(name: "Block 1", position: (1.0, 0.5, 0.0), tolerance: 0.01)),
+    Assert(HistoryLen(2)),
+    Screenshot(path: "sized.png", probes: []),
+    // Esc in the middle of a drag cancels it and records nothing.
+    Remember("sized"),
+    Action(SetTool(Move)),
+    Action(Undo),
+    Assert(ObjectSize(name: "Block 1", size: (4.0, 1.0, 2.0), tolerance: 0.01)),
+    Action(Redo),
+    Click(Anchor("tool.turn")),
+    WaitFrames(2),
+    Screenshot(path: "turn_gizmo.png", probes: []),
+])

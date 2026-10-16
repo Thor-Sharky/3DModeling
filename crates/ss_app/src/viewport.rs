@@ -57,7 +57,8 @@ pub fn show(app: &mut ShapeshopApp, ui: &mut egui::Ui, frame: &mut eframe::Frame
         hover_face: app.view.hover_face,
         focus_only: app.view.focus_only.clone(),
     };
-    let scene = RenderScene::build(&app.doc, &mut app.eval, &app.camera, &app.sel, &opts);
+    let shown = app.preview.as_ref().unwrap_or(&app.doc);
+    let scene = RenderScene::build(shown, &mut app.eval, &app.camera, &app.sel, &opts);
     if let Some(renderer) = app.renderer.as_mut() {
         match renderer.render_viewport(&scene, px[0], px[1]) {
             Ok(tex) => {
@@ -80,6 +81,7 @@ pub fn show(app: &mut ShapeshopApp, ui: &mut egui::Ui, frame: &mut eframe::Frame
             egui::Color32::BLACK,
         );
     }
+    crate::gestures::handle(app, ui, &response, rect, &vp);
     view_buttons(app, ui, rect);
     response
 }
@@ -182,18 +184,20 @@ fn view_buttons(app: &mut ShapeshopApp, ui: &mut egui::Ui, rect: Rect) {
     let size = Vec2::new(150.0, 120.0);
     let area = Rect::from_min_size(Pos2::new(rect.max.x - size.x - 10.0, rect.min.y + 10.0), size);
     let mut child =
-        ui.new_child(egui::UiBuilder::new().max_rect(area).layout(egui::Layout::top_down(egui::Align::Max)));
+        ui.new_child(egui::UiBuilder::new().max_rect(area).layout(egui::Layout::top_down(egui::Align::Min)));
     egui::Frame::popup(child.style()).inner_margin(6.0).show(&mut child, |ui| {
         ui.spacing_mut().button_padding = Vec2::new(6.0, 3.0);
         ui.horizontal(|ui| {
-            if ui.small_button("Top").on_hover_text("Look straight down").clicked() {
-                app.camera.set_view(CameraView::Top);
-            }
-            if ui.small_button("Front").on_hover_text("Look at the front of your model").clicked() {
-                app.camera.set_view(CameraView::Front);
-            }
-            if ui.small_button("Side").on_hover_text("Look from the right side").clicked() {
-                app.camera.set_view(CameraView::Right);
+            for (label, tip, view, anchor) in [
+                ("Top", "Look straight down", CameraView::Top, "view.top"),
+                ("Front", "Look at the front of your model", CameraView::Front, "view.front"),
+                ("Side", "Look from the right side", CameraView::Right, "view.side"),
+            ] {
+                let r = ui.small_button(label).on_hover_text(tip);
+                app.anchors.register(anchor, r.rect);
+                if r.clicked() {
+                    app.camera.set_view(view);
+                }
             }
         });
         ui.horizontal(|ui| {

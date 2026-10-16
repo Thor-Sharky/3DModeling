@@ -1,8 +1,11 @@
 //! Shapeshop: an easy 3D modeling app for Roblox creators and hobby artists.
 
+mod anchors;
 mod app;
 mod cli;
+mod gestures;
 mod screenshot;
+mod script;
 mod theme;
 mod viewport;
 
@@ -44,7 +47,10 @@ fn main() -> std::process::ExitCode {
         Box::new(move |cc| Ok(Box::new(app::ShapeshopApp::new(cc, run_args)))),
     );
     match result {
-        Ok(()) => std::process::ExitCode::SUCCESS,
+        Ok(()) => {
+            let code = app::EXIT_CODE.load(std::sync::atomic::Ordering::SeqCst);
+            std::process::ExitCode::from(code as u8)
+        }
         Err(e) => {
             let msg = format!(
                 "Shapeshop couldn't open its window.\n\n{e}\n\nThis usually means the graphics driver is missing or too old. \
