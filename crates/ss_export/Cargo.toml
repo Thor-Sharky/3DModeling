@@ -1,0 +1,29 @@
+[package]
+name = "ss_export"
+description = "Export: glTF/GLB, OBJ+MTL, STL, presets, Roblox pre-flight checks and the report."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ss_math.workspace = true
+ss_mesh.workspace = true
+ss_doc.workspace = true
+glam.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+gltf-json.workspace = true
+gltf.workspace = true
+stl_io.workspace = true
+image.workspace = true
+thiserror.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tobj.workspace = true
+insta.workspace = true
+
+[lints]
+workspace = true

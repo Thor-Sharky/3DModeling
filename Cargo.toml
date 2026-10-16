@@ -1,0 +1,85 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "xtask"]
+default-members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Thor-Sharky/3DModeling"
+
+# Every direct dependency is pinned with `=` and Cargo.lock is committed.
+# Regenerate the lockfile with `scripts/lock.sh` (it filters out crates published
+# in the last 14 days) and check with `cargo xtask check-ages`.
+[workspace.dependencies]
+ss_math = { path = "crates/ss_math" }
+ss_mesh = { path = "crates/ss_mesh" }
+ss_csg = { path = "crates/ss_csg" }
+ss_doc = { path = "crates/ss_doc" }
+ss_ops = { path = "crates/ss_ops" }
+ss_guide = { path = "crates/ss_guide" }
+ss_io = { path = "crates/ss_io" }
+ss_export = { path = "crates/ss_export" }
+ss_render = { path = "crates/ss_render" }
+
+eframe = { version = "=0.36.2", default-features = false, features = [
+    "glow",
+    "x11",
+    "wayland",
+    "default_fonts",
+    "accesskit",
+    "links",
+    "persistence",
+] }
+# Direct dependency with default features so feature unification restores
+# wayland-dlopen and client-side decorations that eframe's no-default build drops.
+winit = "=0.30.13"
+transform-gizmo-egui = "=0.11.0"
+egui-phosphor = "=0.14.0"
+
+glam = { version = "=0.32.1", features = ["mint", "serde", "bytemuck"] }
+bytemuck = { version = "=1.25.2", features = ["derive"] }
+smallvec = { version = "=1.16.2", features = ["serde", "union"] }
+indexmap = { version = "=2.14.2", features = ["serde"] }
+rustc-hash = "=2.1.3"
+earcut = "=0.4.11"
+
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }
+ron = "=0.12.2"
+zip = { version = "=8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+
+gltf-json = { version = "=1.4.1", features = ["names"] }
+gltf = { version = "=1.4.1", features = ["names"] }
+tobj = "=4.0.5"
+stl_io = "=0.11.0"
+
+rfd = "=0.17.2"
+lexopt = "=0.3.2"
+thiserror = "=2.0.21"
+anyhow = "=1.0.104"
+log = "=0.4.34"
+env_logger = "=0.11.11"
+
+insta = { version = "=1.48.0", features = ["json", "yaml"] }
+proptest = "=1.11.0"
+tempfile = "=3.27.0"
+egui_kittest = { version = "=0.36.2", default-features = false, features = ["eframe"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+debug = "line-tables-only"

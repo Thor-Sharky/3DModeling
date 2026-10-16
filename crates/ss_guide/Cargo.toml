@@ -1,0 +1,21 @@
+[package]
+name = "ss_guide"
+description = "The guide: goal search, quests, tips and the jargon lint."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ss_math.workspace = true
+ss_doc.workspace = true
+ss_ops.workspace = true
+serde.workspace = true
+ron.workspace = true
+thiserror.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,32 @@
+// Every shape button adds a shape; the outliner, Properties and History follow along.
+Script(steps: [
+    WaitFrames(5),
+    Click(Anchor("shapes.block")),
+    Click(Anchor("shapes.ball")),
+    Click(Anchor("shapes.cylinder")),
+    Click(Anchor("shapes.wedge")),
+    Click(Anchor("shapes.corner_wedge")),
+    Click(Anchor("shapes.cone")),
+    Click(Anchor("shapes.pyramid")),
+    Click(Anchor("shapes.ring")),
+    Click(Anchor("shapes.tube")),
+    Assert(ObjectCount(9)),
+    Assert(HistoryLen(9)),
+    Assert(SelectedName("Tube 1")),
+    Screenshot(path: "before_pick.png", probes: []),
+    // Pick the ball by clicking it in the Scene list.
+    Click(Anchor("scene.Ball 1")),
+    Assert(SelectedName("Ball 1")),
+    Action(Camera(Frame)),
+    WaitFrames(3),
+    Screenshot(path: "all_shapes.png", probes: [
+        // Roblox-blue selection outline somewhere around the picked ball is checked by eye;
+        // the viewport center shows the ball (medium stone grey), not the sky.
+        (at: ViewportCenter, rgb: (163, 162, 165), tolerance: 70),
+    ]),
+    // Jump back in History to just after the 3rd step: 3 objects.
+    Action(JumpHistory(3)),
+    Assert(ObjectCount(3)),
+    Action(JumpHistory(9)),
+    Assert(ObjectCount(9)),
+])

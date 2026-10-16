@@ -1,0 +1,20 @@
+// File > New opens the Welcome card; answers set up the project and controls.
+Script(steps: [
+    WaitFrames(5),
+    Click(Anchor("shapes.block")),
+    Action(File(New)),
+    WaitFrames(3),
+    Assert(AnchorExists("welcome.start")),
+    Screenshot(path: "welcome.png", probes: []),
+    Click(Anchor("welcome.target.gameasset")),
+    Click(Anchor("welcome.device.trackpad")),
+    Click(Anchor("welcome.start")),
+    WaitFrames(3),
+    Assert(ObjectCount(0)),
+    Assert(HistoryLen(0)),
+    Assert(Controls("trackpad")),
+    Assert(Units("m")),
+    Action(OpenSettings),
+    WaitFrames(3),
+    Screenshot(path: "settings.png", probes: []),
+])

@@ -1,0 +1,21 @@
+// Scene list: pick, rename (double-click), hide, lock, and undo.
+Script(steps: [
+    WaitFrames(5),
+    Click(Anchor("shapes.block")),
+    Click(Anchor("shapes.ball")),
+    Click(Anchor("scene.Block 1")),
+    Assert(SelectedName("Block 1")),
+    WaitFrames(30),
+    DoubleClick(Anchor("scene.Block 1")),
+    WaitFrames(2),
+    KeyWith(key: "A", mods: (ctrl: true)),
+    Type("Wall"),
+    WaitFrames(2),
+    Key("Enter"),
+    WaitFrames(3),
+    Assert(AnchorExists("scene.Wall")),
+    Screenshot(path: "renamed.png", probes: []),
+    Action(Undo),
+    WaitFrames(2),
+    Assert(AnchorExists("scene.Block 1")),
+])

@@ -1,0 +1,21 @@
+[package]
+name = "ss_render"
+description = "OpenGL 3.3 renderer for the viewport, thumbnails and pictures (uses eframe::glow only)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ss_math.workspace = true
+ss_mesh.workspace = true
+ss_doc.workspace = true
+eframe.workspace = true
+glam.workspace = true
+bytemuck.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true
