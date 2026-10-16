@@ -28,8 +28,4 @@ impl Anchors {
     pub fn get(&self, id: &str) -> Option<Rect> {
         self.current.get(id).or_else(|| self.previous.get(id)).copied()
     }
-
-    pub fn ids(&self) -> impl Iterator<Item = &String> {
-        self.previous.keys()
-    }
 }

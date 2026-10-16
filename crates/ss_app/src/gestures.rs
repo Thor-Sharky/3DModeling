@@ -5,8 +5,8 @@
 //! releasing commits it as one history step, Esc throws it away.
 
 use eframe::egui::{self, Color32, Pos2, Rect, Stroke};
-use glam::{DMat4, DQuat, DVec3, Mat3, Quat, Vec3};
-use ss_doc::{Document, HistoryEntry, ObjectId, Selection, ShapeSource, Tx};
+use glam::{DMat4, DQuat, DVec3, Mat3, Vec3};
+use ss_doc::{Document, ObjectId, Selection, ShapeSource, Tx};
 use ss_math::{Ray, Transform, Viewport};
 use ss_ops::ActiveTool;
 use transform_gizmo_egui::prelude::*;
@@ -421,11 +421,34 @@ fn size_interaction(
 /// (Roblox-style one-sided resize). Primitives keep their sliders: their size and
 /// pivot scale; edited shapes scale their points around the pivot.
 pub fn resize_side(tx: &mut Tx<'_>, id: ObjectId, axis: usize, side: f32, k: f32) -> Result<(), ss_doc::DocError> {
+    resize_axis(tx, id, axis, k, ResizeAnchor::OppositeOf(side))
+}
+
+/// What stays put when a shape is resized along one axis.
+#[derive(Clone, Copy, Debug)]
+pub enum ResizeAnchor {
+    /// The side opposite the dragged one (+1 = dragging the + side).
+    OppositeOf(f32),
+    Center,
+}
+
+/// Scale a shape along one local axis by `k`, keeping `anchor` where it is.
+pub fn resize_axis(
+    tx: &mut Tx<'_>,
+    id: ObjectId,
+    axis: usize,
+    k: f32,
+    anchor: ResizeAnchor,
+) -> Result<(), ss_doc::DocError> {
     let Some(mesh) = tx.doc().mesh_of(id) else { return Err(ss_doc::DocError::NotAShape(id)) };
     let b = mesh.bounds();
-    // The opposite face, in object space, before and after scaling about the origin.
-    let opposite = if side > 0.0 { b.min[axis] } else { b.max[axis] };
-    let shift = opposite - opposite * k;
+    // The anchor, in object space, before and after scaling about the origin.
+    let a = match anchor {
+        ResizeAnchor::OppositeOf(side) if side > 0.0 => b.min[axis],
+        ResizeAnchor::OppositeOf(_) => b.max[axis],
+        ResizeAnchor::Center => b.center()[axis],
+    };
+    let shift = a - a * k;
     let obj = tx.object_mut(id)?;
     let rotation = obj.transform.rotation;
     let shape = obj.shape_mut().ok_or(ss_doc::DocError::NotAShape(id))?;
@@ -476,22 +499,5 @@ fn draw_size_handles(app: &ShapeshopApp, ui: &egui::Ui, handles: &[SizeHandle], 
         let bg = Rect::from_min_size(pos, galley.size()).expand(5.0);
         painter.rect_filled(bg, 6.0, Color32::from_rgba_unmultiplied(20, 24, 32, 220));
         painter.galley(pos, galley, Color32::WHITE);
-    }
-}
-
-/// Unit quaternion helper used by scripts.
-pub fn quat_from_euler_deg(deg: Vec3) -> Quat {
-    Quat::from_euler(glam::EulerRot::XYZ, deg.x.to_radians(), deg.y.to_radians(), deg.z.to_radians())
-}
-
-/// Record a committed change in history.
-pub fn history_entry(label: &str, delta: ss_doc::DocDelta, before: Selection, after: Selection) -> HistoryEntry {
-    HistoryEntry {
-        label: label.to_owned(),
-        invocation: None,
-        delta,
-        sel_before: before,
-        sel_after: after,
-        coalesce: None,
     }
 }

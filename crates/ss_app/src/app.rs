@@ -24,6 +24,18 @@ use crate::viewport::{self, ControlsPreset};
 
 pub const APP_NAME: &str = "Shapeshop";
 
+/// Round shapes start smooth (flat caps stay crisp); boxy ones start faceted.
+pub fn default_look(kind: PrimitiveKind) -> ss_mesh::Shading {
+    match kind {
+        PrimitiveKind::Ball
+        | PrimitiveKind::Cylinder
+        | PrimitiveKind::Cone
+        | PrimitiveKind::Ring
+        | PrimitiveKind::Tube => ss_mesh::Shading::SmoothSharp { angle_deg: 40.0 },
+        _ => ss_mesh::Shading::Faceted,
+    }
+}
+
 /// Exit code set by scripts (0 = passed, 3 = failed).
 pub static EXIT_CODE: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 
@@ -111,6 +123,8 @@ pub struct ShapeshopApp {
     pub toasts: Vec<Toast>,
     /// Set when something this frame already used the Esc key.
     pub esc_consumed: bool,
+    /// Changes while one widget is being dragged share this number (so they merge).
+    pub edit_session: u64,
 }
 
 impl ShapeshopApp {
@@ -174,6 +188,7 @@ impl ShapeshopApp {
             search_text: String::new(),
             toasts: Vec::new(),
             esc_consumed: false,
+            edit_session: 0,
         };
         if args.demo {
             app.load_demo();
@@ -220,19 +235,18 @@ impl ShapeshopApp {
         self.history.mark_saved();
     }
 
-    /// Add a starter shape at the center of the view, resting on the ground.
+    /// Add a starter shape near the center of the view, resting on the ground,
+    /// in the nearest free spot so new shapes don't land inside each other.
     pub fn add_shape(&mut self, kind: PrimitiveKind) {
         let Some(mat) = self.doc.default_material() else { return };
         let prim = kind.default_primitive();
-        let mut pos = self.camera.focus;
-        pos.y = prim.size().y * 0.5;
-        let snap = self.doc.meta().snap.move_step;
-        pos.x = ss_math::snap::snap(pos.x, snap);
-        pos.z = ss_math::snap::snap(pos.z, snap);
+        let pos = self.free_spot(prim.size());
         let mut new_id = None;
         self.commit_with(&format!("Add {}", kind.label()), None, |tx| {
             let name = tx.doc().unique_name(kind.label());
-            let mut obj = Object::new(name, ObjectKind::Shape(Shape::new(ShapeSource::Primitive(prim), mat)));
+            let mut shape = Shape::new(ShapeSource::Primitive(prim), mat);
+            shape.look = default_look(kind);
+            let mut obj = Object::new(name, ObjectKind::Shape(shape));
             obj.transform.translation = pos;
             new_id = Some(tx.add_object(obj, None, None)?);
             Ok(())
@@ -240,6 +254,43 @@ impl ShapeshopApp {
         if let Some(id) = new_id {
             self.set_selection(Selection::single(id));
         }
+    }
+
+    /// Where a new shape of `size` goes: on the ground under the camera focus, or the
+    /// nearest grid spot (spiralling outward) where it doesn't overlap anything.
+    pub fn free_spot(&self, size: glam::Vec3) -> glam::Vec3 {
+        let step = self.doc.meta().snap.move_step.max(0.25);
+        let snap = |v: f32| ss_math::snap::snap(v, step);
+        let center = glam::Vec3::new(snap(self.camera.focus.x), size.y * 0.5, snap(self.camera.focus.z));
+        let others: Vec<ss_math::Aabb> =
+            self.doc.roots().iter().map(|id| self.doc.world_bounds(*id)).filter(|b| !b.is_empty()).collect();
+        let gap = 0.5;
+        let fits = |p: glam::Vec3| {
+            let b = ss_math::Aabb::from_center_size(p, size + glam::Vec3::splat(gap));
+            others.iter().all(|o| {
+                !(b.min.x < o.max.x
+                    && b.max.x > o.min.x
+                    && b.min.y < o.max.y
+                    && b.max.y > o.min.y
+                    && b.min.z < o.max.z
+                    && b.max.z > o.min.z)
+            })
+        };
+        let spacing = (size.x.max(size.z) + gap).max(step);
+        for ring in 0..12i32 {
+            for dz in -ring..=ring {
+                for dx in -ring..=ring {
+                    if dx.abs() != ring && dz.abs() != ring {
+                        continue;
+                    }
+                    let p = center + glam::Vec3::new(snap(dx as f32 * spacing), 0.0, snap(dz as f32 * spacing));
+                    if fits(p) {
+                        return p;
+                    }
+                }
+            }
+        }
+        center
     }
 
     /// Delete the picked objects.
@@ -267,6 +318,28 @@ impl ShapeshopApp {
         sel_after: Option<Selection>,
         f: impl FnOnce(&mut Tx<'_>) -> Result<(), DocError>,
     ) -> bool {
+        self.commit_inner(label, sel_after, None, f)
+    }
+
+    /// Like [`Self::commit_with`], but consecutive changes with the same key merge into one
+    /// history step (dragging a number or a slider).
+    pub fn commit_coalesced(
+        &mut self,
+        label: &str,
+        key: u64,
+        f: impl FnOnce(&mut Tx<'_>) -> Result<(), DocError>,
+    ) -> bool {
+        let key = key ^ self.edit_session.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        self.commit_inner(label, None, Some(key), f)
+    }
+
+    fn commit_inner(
+        &mut self,
+        label: &str,
+        sel_after: Option<Selection>,
+        coalesce: Option<u64>,
+        f: impl FnOnce(&mut Tx<'_>) -> Result<(), DocError>,
+    ) -> bool {
         let sel_before = self.sel.clone();
         let mut tx = self.doc.begin(label);
         match f(&mut tx) {
@@ -281,7 +354,7 @@ impl ShapeshopApp {
                     delta,
                     sel_before,
                     sel_after: after,
-                    coalesce: None,
+                    coalesce,
                 });
                 true
             }
@@ -603,23 +676,11 @@ impl ShapeshopApp {
             self.set_selection(sel);
         }
         ui.separator();
-        theme::section(ui, icon::SLIDERS_HORIZONTAL, "PROPERTIES");
-        let doc = self.shown_doc();
-        match self.sel.active().and_then(|id| doc.object(id).map(|o| (id, o))) {
-            Some((id, obj)) => {
-                ui.label(RichText::new(&obj.name).strong());
-                let t = doc.world_transform(id).translation;
-                let u = doc.meta().units;
-                ui.label(format!("Position: {}, {}, {}", u.format(t.x), u.format(t.y), u.format(t.z)));
-                if let Some(mesh) = doc.mesh_of(id) {
-                    let s = mesh.bounds().size();
-                    ui.label(format!("Size: {} × {} × {}", u.format(s.x), u.format(s.y), u.format(s.z)));
-                }
-            }
-            None => {
-                ui.label(RichText::new("Pick something to see its settings.").weak());
-            }
-        }
+        egui::ScrollArea::vertical().id_salt("props").max_height(ui.available_height() - 200.0).show(ui, |ui| {
+            crate::panels::properties(self, ui);
+        });
+        ui.separator();
+        crate::panels::history(self, ui);
     }
 
     fn bottom_bar(&mut self, ui: &mut egui::Ui) {
@@ -722,6 +783,9 @@ impl eframe::App for ShapeshopApp {
         self.esc_consumed = false;
         self.anchors.begin_frame();
         let ctx = ui.ctx().clone();
+        if ctx.dragged_id().is_none() && !ctx.egui_wants_keyboard_input() {
+            self.edit_session += 1;
+        }
         self.time = ctx.input(|i| i.time);
         self.pixels_per_point = ctx.pixels_per_point();
 

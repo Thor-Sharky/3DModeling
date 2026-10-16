@@ -219,7 +219,7 @@ impl OrbitCamera {
         let radius = bounds.radius().max(0.5);
         let half_fov = (self.fov_y_deg.to_radians() * 0.5).max(0.1);
         self.focus = bounds.center();
-        self.distance = (radius / half_fov.sin() * 1.15).clamp(MIN_DISTANCE, MAX_DISTANCE);
+        self.distance = (radius / half_fov.sin() * 1.7).clamp(6.0, MAX_DISTANCE);
     }
 
     pub fn set_view(&mut self, view: CameraView) {
