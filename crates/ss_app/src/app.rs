@@ -520,6 +520,21 @@ impl ShapeshopApp {
                         }
                         Ok(())
                     });
+                } else if id == "paint.object" {
+                    let mat = params.get("material").and_then(|v| v.as_i64()).map(|m| ss_mesh::MaterialId(m as u32));
+                    let ids: Vec<ObjectId> = self.sel.objects.iter().copied().collect();
+                    if let Some(mat) = mat {
+                        self.commit_with("Paint", None, |tx| {
+                            for id in &ids {
+                                for sub in tx.doc().subtree(*id) {
+                                    if let Some(s) = tx.object_mut(sub)?.shape_mut() {
+                                        s.material = mat;
+                                    }
+                                }
+                            }
+                            Ok(())
+                        });
+                    }
                 } else if id == "object.rename" {
                     if let (Some(active), Some(name)) = (self.sel.active(), params.get("name").and_then(|v| v.as_str()))
                     {
@@ -702,15 +717,49 @@ impl ShapeshopApp {
             ui.label(RichText::new("Pick something to see the tools that fit.").weak());
             ui.separator();
             theme::section(ui, icon::PALETTE, "PALETTE");
+            let active_mat =
+                self.sel.active().and_then(|id| self.doc.object(id)).and_then(|o| o.shape()).map(|s| s.material);
+            let mut paint = None;
             ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(5.0, 5.0);
                 for (id, m) in self.doc.materials() {
                     let [r, g, b] = m.color.map(|c| (c * 255.0).round() as u8);
-                    let (rect, resp) = ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::click());
-                    ui.painter().rect_filled(rect, 5.0, egui::Color32::from_rgb(r, g, b));
-                    self.anchors.register(format!("palette.{}", id.0), rect);
-                    resp.on_hover_text(&m.name);
+                    let (rect, resp) = ui.allocate_exact_size(egui::vec2(26.0, 26.0), egui::Sense::click());
+                    ui.painter().rect_filled(rect, 6.0, egui::Color32::from_rgb(r, g, b));
+                    if active_mat == Some(id) {
+                        ui.painter().rect_stroke(
+                            rect.expand(2.0),
+                            7.0,
+                            egui::Stroke::new(2.0, theme::ACCENT),
+                            egui::StrokeKind::Outside,
+                        );
+                    }
+                    if m.metal > 0.5 || m.glow > 0.0 {
+                        let mark = if m.glow > 0.0 { icon::SPARKLE } else { icon::DIAMOND };
+                        ui.painter().text(
+                            rect.right_bottom() - egui::vec2(7.0, 7.0),
+                            egui::Align2::CENTER_CENTER,
+                            mark,
+                            egui::FontId::proportional(10.0),
+                            egui::Color32::WHITE,
+                        );
+                    }
+                    self.anchors.register(format!("palette.{}", m.name.to_lowercase().replace(' ', "_")), rect);
+                    let resp = resp.on_hover_text(format!("{}\nClick to paint what you picked.", m.name));
+                    if resp.clicked() {
+                        paint = Some(id);
+                    }
                 }
             });
+            if let Some(mat) = paint {
+                if self.sel.objects.is_empty() {
+                    self.toast("Pick something first, then click a color to paint it.");
+                } else {
+                    let mut params = ss_doc::ParamValues::new();
+                    params.insert("material".into(), ss_doc::ParamValue::Int(mat.0 as i64));
+                    self.dispatch(AppAction::RunTool { id: "paint.object".into(), params });
+                }
+            }
         });
     }
 

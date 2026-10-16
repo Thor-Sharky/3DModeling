@@ -37,6 +37,9 @@ struct GpuMesh {
 struct MeshKey {
     object: ObjectId,
     mesh_rev: u64,
+    /// The object's own material: faces without one take this color.
+    material: ss_mesh::MaterialId,
+    /// Hash of the whole palette (editing a swatch recolors everything).
     materials: u64,
     shading: u32,
 }
@@ -365,6 +368,7 @@ impl GlRenderer {
         let key = MeshKey {
             object: item.object,
             mesh_rev: item.mesh.rev(),
+            material: item.material,
             materials: scene.materials_key(),
             shading: shading_key(item.shading),
         };
@@ -568,6 +572,7 @@ impl GlRenderer {
                 let key = MeshKey {
                     object: item.object,
                     mesh_rev: item.mesh.rev(),
+                    material: item.material,
                     materials: scene.materials_key(),
                     shading: shading_key(item.shading),
                 };

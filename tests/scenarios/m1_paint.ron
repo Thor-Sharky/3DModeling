@@ -1,0 +1,20 @@
+// Click a palette color to paint the picked shape; the viewport shows the color.
+Script(steps: [
+    WaitFrames(5),
+    Click(Anchor("shapes.block")),
+    Click(Anchor("palette.bright_red")),
+    WaitFrames(2),
+    Assert(HistoryLen(2)),
+    WaitFrames(3),
+    Action(Select(None)),
+    WaitFrames(3),
+    Screenshot(path: "red_block.png", probes: [
+        // Top face of the block (Block 1 face 2) is red-ish, not grey.
+        (at: World(FaceCenter("Block 1", 2)), rgb: (196, 40, 28), tolerance: 70),
+    ]),
+    Action(Undo),
+    WaitFrames(3),
+    Screenshot(path: "grey_block.png", probes: [
+        (at: World(FaceCenter("Block 1", 2)), rgb: (196, 40, 28), tolerance: 60, not: true),
+    ]),
+])
