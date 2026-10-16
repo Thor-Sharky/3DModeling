@@ -12,5 +12,5 @@ for a in "$@"; do [[ "$a" == "--data-dir" ]] && has_data_dir=1; done
 extra=()
 [[ $has_data_dir == 0 ]] && extra+=(--data-dir "$DATA_DIR")
 exec xvfb-run -a -s "-screen 0 ${SCREEN} -nolisten tcp" \
-  env -u WAYLAND_DISPLAY LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe __GLX_VENDOR_LIBRARY_NAME=mesa \
+  env -u WAYLAND_DISPLAY XMODIFIERS=@im=none LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe __GLX_VENDOR_LIBRARY_NAME=mesa \
   "$BIN" "${extra[@]}" "$@"

@@ -126,6 +126,7 @@ pub struct ShapeshopApp {
     /// Changes while one widget is being dragged share this number (so they merge).
     pub edit_session: u64,
     pub welcome: crate::welcome::WelcomeState,
+    pub outliner: crate::outliner::OutlinerState,
     pub settings: crate::welcome::SettingsState,
     /// Set by the UI so `dispatch` can reach the egui context for settings.
     pub ctx: Option<egui::Context>,
@@ -194,6 +195,7 @@ impl ShapeshopApp {
             esc_consumed: false,
             edit_session: 0,
             welcome: Default::default(),
+            outliner: Default::default(),
             settings: Default::default(),
             ctx: Some(cc.egui_ctx.clone()),
         };
@@ -496,11 +498,37 @@ impl ShapeshopApp {
                 CameraOp::ToggleFlat => self.camera.ortho = !self.camera.ortho,
                 CameraOp::ToggleXRay => self.view.xray = !self.view.xray,
             },
-            AppAction::RunTool { id, .. } => {
+            AppAction::RunTool { id, params } => {
                 if let Some(kind) = id.strip_prefix("shape.add.").and_then(PrimitiveKind::from_key) {
                     self.add_shape(kind);
                 } else if id == "object.delete" {
                     self.delete_selected();
+                } else if let Some(field) = id.strip_prefix("object.set_").filter(|f| *f == "visible" || *f == "locked")
+                {
+                    let value = params.get("value").and_then(|v| v.as_bool()).unwrap_or(true);
+                    let ids: Vec<ObjectId> = self.sel.objects.iter().copied().collect();
+                    let label = match (field, value) {
+                        ("visible", true) => "Show",
+                        ("visible", false) => "Hide",
+                        (_, true) => "Lock",
+                        (_, false) => "Unlock",
+                    };
+                    self.commit_with(label, None, |tx| {
+                        for id in &ids {
+                            let o = tx.object_mut(*id)?;
+                            if field == "visible" { o.visible = value } else { o.locked = value }
+                        }
+                        Ok(())
+                    });
+                } else if id == "object.rename" {
+                    if let (Some(active), Some(name)) = (self.sel.active(), params.get("name").and_then(|v| v.as_str()))
+                    {
+                        let name = name.to_owned();
+                        self.commit_with("Rename", None, |tx| {
+                            tx.object_mut(active)?.name = name;
+                            Ok(())
+                        });
+                    }
                 } else {
                     self.toast(format!("{id} isn't wired up yet"));
                 }
@@ -687,35 +715,7 @@ impl ShapeshopApp {
     }
 
     fn right_panel(&mut self, ui: &mut egui::Ui) {
-        theme::section(ui, icon::TREE_VIEW, "SCENE");
-        let mut clicked: Option<(ObjectId, bool)> = None;
-        egui::ScrollArea::vertical().id_salt("outliner").max_height(ui.available_height() * 0.5).show(ui, |ui| {
-            if self.doc.object_count() == 0 {
-                ui.label(RichText::new("Your scene is empty. Click a shape on the left to add one.").weak());
-            }
-            for id in self.doc.walk() {
-                let Some(obj) = self.doc.object(id) else { continue };
-                let depth = self.doc.ancestors(id).len();
-                ui.horizontal(|ui| {
-                    ui.add_space(depth as f32 * 14.0);
-                    let selected = self.sel.contains(id);
-                    let r = ui.selectable_label(selected, format!("{}  {}", icon::CUBE, obj.name));
-                    self.anchors.register(format!("scene.{}", obj.name), r.rect);
-                    if r.clicked() {
-                        clicked = Some((id, ui.input(|i| i.modifiers.shift)));
-                    }
-                });
-            }
-        });
-        if let Some((id, shift)) = clicked {
-            let mut sel = self.sel.clone();
-            if shift {
-                sel.toggle(id)
-            } else {
-                sel.set_only(id)
-            }
-            self.set_selection(sel);
-        }
+        crate::outliner::show(self, ui);
         ui.separator();
         egui::ScrollArea::vertical().id_salt("props").max_height(ui.available_height() - 200.0).show(ui, |ui| {
             crate::panels::properties(self, ui);

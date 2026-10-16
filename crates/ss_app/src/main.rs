@@ -4,6 +4,7 @@ mod anchors;
 mod app;
 mod cli;
 mod gestures;
+mod outliner;
 mod panels;
 mod screenshot;
 mod script;
