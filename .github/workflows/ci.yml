@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Checks and headless scenarios (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: System packages (virtual display + software OpenGL)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libxkbcommon-x11-0 libgl1-mesa-dri libglx-mesa0 cmake
+      - name: cargo xtask ci (fmt, clippy, tests, layering, crate ages)
+        run: cargo xtask ci
+      - name: Headless scenarios with screenshots
+        run: scripts/shots.sh
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: target/shots
+      - name: Release build
+        run: cargo build --release --locked -p shapeshop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shapeshop-linux
+          path: target/release/shapeshop
+
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Tests (no window needed)
+        run: cargo test --workspace --locked --exclude shapeshop --exclude xtask
+      - name: Release build
+        run: cargo build --release --locked -p shapeshop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shapeshop-${{ matrix.os }}
+          path: |
+            target/release/shapeshop
+            target/release/shapeshop.exe
