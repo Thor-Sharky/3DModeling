@@ -1,0 +1,24 @@
+[package]
+name = "ss_ops"
+description = "Tools as pure operators plus the data-driven tool registry."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ss_math.workspace = true
+ss_mesh.workspace = true
+ss_doc.workspace = true
+glam.workspace = true
+serde.workspace = true
+ron.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

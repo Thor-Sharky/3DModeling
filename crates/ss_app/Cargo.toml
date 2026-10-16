@@ -1,0 +1,44 @@
+[package]
+name = "shapeshop"
+description = "Shapeshop: an easy 3D modeling app for Roblox creators and hobby artists."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+default-run = "shapeshop"
+
+[[bin]]
+name = "shapeshop"
+path = "src/main.rs"
+
+[dependencies]
+ss_math.workspace = true
+ss_mesh.workspace = true
+ss_csg.workspace = true
+ss_doc.workspace = true
+ss_ops.workspace = true
+ss_guide.workspace = true
+ss_io.workspace = true
+ss_export.workspace = true
+ss_render.workspace = true
+eframe.workspace = true
+winit.workspace = true
+transform-gizmo-egui.workspace = true
+egui-phosphor.workspace = true
+glam.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ron.workspace = true
+image.workspace = true
+rfd.workspace = true
+lexopt.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+
+[dev-dependencies]
+egui_kittest.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

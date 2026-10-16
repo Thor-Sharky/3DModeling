@@ -1,0 +1,18 @@
+[package]
+name = "ss_csg"
+description = "Mesh booleans (Union, Cutter, Intersect) behind a swappable engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ss_math.workspace = true
+ss_mesh.workspace = true
+glam.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true
