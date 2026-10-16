@@ -125,6 +125,10 @@ pub struct ShapeshopApp {
     pub esc_consumed: bool,
     /// Changes while one widget is being dragged share this number (so they merge).
     pub edit_session: u64,
+    pub welcome: crate::welcome::WelcomeState,
+    pub settings: crate::welcome::SettingsState,
+    /// Set by the UI so `dispatch` can reach the egui context for settings.
+    pub ctx: Option<egui::Context>,
 }
 
 impl ShapeshopApp {
@@ -189,7 +193,12 @@ impl ShapeshopApp {
             toasts: Vec::new(),
             esc_consumed: false,
             edit_session: 0,
+            welcome: Default::default(),
+            settings: Default::default(),
+            ctx: Some(cc.egui_ctx.clone()),
         };
+        // First run: ask what they're making (scripts and screenshots skip it).
+        app.welcome.open = !args.deterministic && !app.prefs.tour_done && args.open.is_none();
         if args.demo {
             app.load_demo();
         }
@@ -291,6 +300,24 @@ impl ShapeshopApp {
             }
         }
         center
+    }
+
+    /// Start a fresh project (the Welcome card's "Start building").
+    pub fn new_project(&mut self, meta: ss_doc::DocMeta) {
+        let mut doc = Document::new(meta.target);
+        {
+            let mut tx = doc.begin("Setup");
+            *tx.meta_mut() = meta;
+            tx.commit();
+        }
+        self.doc = doc;
+        self.history.clear();
+        self.sel = Selection::default();
+        self.eval.clear();
+        self.preview = None;
+        self.drag = None;
+        self.file_path = None;
+        self.camera = OrbitCamera::home();
     }
 
     /// Delete the picked objects.
@@ -478,6 +505,17 @@ impl ShapeshopApp {
                     self.toast(format!("{id} isn't wired up yet"));
                 }
             }
+            AppAction::SetSetting { key, value } => {
+                if let Some(ctx) = self.ctx.clone()
+                    && let Err(e) = crate::welcome::apply_setting(self, &ctx, &key, &value)
+                {
+                    log::warn!("{e}");
+                }
+            }
+            AppAction::OpenSettings => self.settings.open = true,
+            AppAction::File(ss_ops::FileOp::New) => {
+                self.welcome = crate::welcome::WelcomeState { open: true, ..Default::default() };
+            }
             other => self.toast(format!("{other:?} isn't wired up yet")),
         }
     }
@@ -527,10 +565,7 @@ impl ShapeshopApp {
         });
         let esc = ctx.input(|i| i.key_pressed(egui::Key::Escape));
         for a in actions {
-            match a {
-                AppAction::SetSetting { key, .. } if key == "local_axes" => self.local_axes = !self.local_axes,
-                a => self.dispatch(a),
-            }
+            self.dispatch(a);
         }
         if esc {
             self.escape_ladder();
@@ -563,6 +598,12 @@ impl ShapeshopApp {
             });
             ui.menu_button("Help", |ui| {
                 ui.label("Hover any button to see what it does.");
+                if ui.button(format!("{} Settings", icon::GEAR)).clicked() {
+                    self.dispatch(AppAction::OpenSettings);
+                }
+                if ui.button(format!("{} Welcome card", icon::HAND_WAVING)).clicked() {
+                    self.welcome.open = true;
+                }
             });
             ui.separator();
             let undo_tip =
@@ -801,6 +842,8 @@ impl eframe::App for ShapeshopApp {
         });
         self.handle_global_keys(&ctx);
         self.draw_toasts(&ctx);
+        crate::welcome::show_welcome(self, &ctx);
+        crate::welcome::show_settings(self, &ctx);
 
         if let Some(mut script) = self.script.take() {
             script.tick(self, &ctx);

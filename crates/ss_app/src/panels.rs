@@ -41,7 +41,7 @@ fn vec3_row(
         {
             ui.label(RichText::new(axis).color(color).strong());
             let r = ui.add_sized(
-                [62.0, 22.0],
+                [56.0, 22.0],
                 egui::DragValue::new(&mut v[i]).speed(speed).range(min..=f32::MAX).max_decimals(2),
             );
             changed |= r.changed();
@@ -53,6 +53,7 @@ fn vec3_row(
 pub fn properties(app: &mut ShapeshopApp, ui: &mut egui::Ui) {
     theme::section(ui, icon::SLIDERS_HORIZONTAL, "PROPERTIES");
     ui.set_max_width(236.0);
+    ui.spacing_mut().slider_width = 104.0;
     let Some(id) = app.sel.active() else {
         ui.label(RichText::new("Pick something to see its settings.").weak());
         return;

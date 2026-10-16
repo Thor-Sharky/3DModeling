@@ -20,6 +20,20 @@ pub enum ControlsPreset {
 }
 
 impl ControlsPreset {
+    pub fn key(self) -> &'static str {
+        match self {
+            ControlsPreset::RobloxStudio => "roblox",
+            ControlsPreset::Trackpad => "trackpad",
+            ControlsPreset::Blender => "blender",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        [ControlsPreset::RobloxStudio, ControlsPreset::Trackpad, ControlsPreset::Blender]
+            .into_iter()
+            .find(|c| c.key() == key)
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             ControlsPreset::RobloxStudio => "Roblox Studio",
@@ -179,9 +193,11 @@ fn zoom_at_cursor(app: &mut ShapeshopApp, vp: &Viewport, cursor: Option<Pos2>, f
     app.camera.zoom(factor, target);
 }
 
-/// The view cube area: named views plus Home and Frame.
+/// The view area: named views, Home and Frame, view toggles and on-screen
+/// look-around/zoom buttons (for trackpads and anyone without a middle button).
 fn view_buttons(app: &mut ShapeshopApp, ui: &mut egui::Ui, rect: Rect) {
-    let size = Vec2::new(150.0, 120.0);
+    use egui_phosphor::regular as icon;
+    let size = Vec2::new(204.0, 190.0);
     let area = Rect::from_min_size(Pos2::new(rect.max.x - size.x - 10.0, rect.min.y + 10.0), size);
     let mut child =
         ui.new_child(egui::UiBuilder::new().max_rect(area).layout(egui::Layout::top_down(egui::Align::Min)));
@@ -201,19 +217,55 @@ fn view_buttons(app: &mut ShapeshopApp, ui: &mut egui::Ui, rect: Rect) {
             }
         });
         ui.horizontal(|ui| {
-            if ui
-                .small_button(format!("{} Home", egui_phosphor::regular::HOUSE))
-                .on_hover_text("Go back to the starting view")
-                .clicked()
-            {
+            let r = ui.small_button(format!("{} Home", icon::HOUSE)).on_hover_text("Go back to the starting view");
+            app.anchors.register("view.home", r.rect);
+            if r.clicked() {
                 app.camera.set_view(CameraView::Home);
             }
-            if ui
-                .small_button(format!("{} Frame", egui_phosphor::regular::FRAME_CORNERS))
-                .on_hover_text("Fit what you picked (or everything) in the view  (F)")
-                .clicked()
-            {
+            let r = ui
+                .small_button(format!("{} Frame", icon::FRAME_CORNERS))
+                .on_hover_text("Fit what you picked (or everything) in the view  (F)");
+            app.anchors.register("view.frame", r.rect);
+            if r.clicked() {
                 app.frame_selection();
+            }
+        });
+        ui.horizontal(|ui| {
+            let r = ui
+                .selectable_label(app.camera.ortho, "Flat")
+                .on_hover_text("Flat view: no perspective, so sizes line up (Orthographic)");
+            app.anchors.register("view.flat", r.rect);
+            if r.clicked() {
+                app.camera.ortho = !app.camera.ortho;
+            }
+            let r =
+                ui.selectable_label(app.view.xray, "X-ray").on_hover_text("See through shapes to what's behind them");
+            app.anchors.register("view.xray", r.rect);
+            if r.clicked() {
+                app.view.xray = !app.view.xray;
+            }
+            let r = ui.selectable_label(app.view.show_grid, "Grid").on_hover_text("Show or hide the floor grid");
+            if r.clicked() {
+                app.view.show_grid = !app.view.show_grid;
+            }
+        });
+        ui.horizontal(|ui| {
+            let step = 15f32.to_radians();
+            for (ic, tip, yaw, pitch) in [
+                (icon::ARROW_LEFT, "Look around to the left", -step, 0.0),
+                (icon::ARROW_RIGHT, "Look around to the right", step, 0.0),
+                (icon::ARROW_UP, "Look from higher up", 0.0, step),
+                (icon::ARROW_DOWN, "Look from lower down", 0.0, -step),
+            ] {
+                if ui.small_button(ic).on_hover_text(tip).clicked() {
+                    app.camera.orbit(yaw, pitch);
+                }
+            }
+            if ui.small_button(icon::MAGNIFYING_GLASS_PLUS).on_hover_text("Zoom in").clicked() {
+                app.camera.zoom(1.25, None);
+            }
+            if ui.small_button(icon::MAGNIFYING_GLASS_MINUS).on_hover_text("Zoom out").clicked() {
+                app.camera.zoom(0.8, None);
             }
         });
     });

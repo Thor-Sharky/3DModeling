@@ -92,6 +92,10 @@ pub enum Check {
     AnchorExists(String),
     FileExists(String),
     StatusContains(String),
+    /// Controls preset key: "roblox", "trackpad", "blender".
+    Controls(String),
+    /// Project units: "studs" or "m".
+    Units(String),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -532,6 +536,12 @@ fn run_check(runner: &ScriptRunner, app: &mut ShapeshopApp, check: &Check) -> Re
         }
         Check::AnchorExists(id) => expect(app.anchors.get(id).is_some(), format!("no UI element {id:?}")),
         Check::FileExists(p) => expect(Path::new(p).exists(), format!("{p} does not exist")),
+        Check::Controls(c) => {
+            expect(app.prefs.controls.key() == c, format!("controls are {}", app.prefs.controls.key()))
+        }
+        Check::Units(u) => {
+            expect(app.doc.meta().units.short() == u, format!("units are {}", app.doc.meta().units.short()))
+        }
         Check::StatusContains(s) => {
             expect(app.status_text().contains(s.as_str()), format!("status is {:?}", app.status_text()))
         }

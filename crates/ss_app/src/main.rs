@@ -9,6 +9,7 @@ mod screenshot;
 mod script;
 mod theme;
 mod viewport;
+mod welcome;
 
 use eframe::egui;
 
