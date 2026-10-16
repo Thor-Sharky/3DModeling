@@ -132,9 +132,22 @@ pub struct ToolDef {
     /// Hidden from panels and search (internal tools used by gizmos and scripts).
     #[serde(default)]
     pub internal: bool,
+    /// For entries that are not operators (ids starting with `ui.`): what the button does,
+    /// e.g. `SetTool(Move)` or `Camera(Home)`. Operators leave this empty (they run `RunTool`).
+    #[serde(default)]
+    pub action: Option<AppAction>,
 }
 
 impl ToolDef {
+    /// The action a button for this entry performs.
+    pub fn activate(&self) -> AppAction {
+        match &self.action {
+            Some(a) => a.clone(),
+            None if self.interactive.is_some() => AppAction::StartTool(self.id.clone()),
+            None => AppAction::RunTool { id: self.id.clone(), params: self.default_params() },
+        }
+    }
+
     pub fn default_params(&self) -> ss_doc::ParamValues {
         self.params.iter().map(|p| (p.key.clone(), p.default.clone())).collect()
     }
